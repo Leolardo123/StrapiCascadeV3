@@ -7,7 +7,6 @@ import { StrapiCascadeV3 } from '../../../infraestructure/custom/cascade-service
 
 export default factories.createCoreController('api::custom-route.custom-route', {
     async cascadeV3(ctx) {
-        // await strapi.documents("api::category.category").create({ data: { articles: } });
         const result = await StrapiCascadeV3.cascadeUpsert({
             target: "api::category.category",
             data: {
