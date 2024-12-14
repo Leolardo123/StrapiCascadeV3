@@ -1,0 +1,18 @@
+{
+  "kind": "collectionType",
+  "collectionName": "moderadors",
+  "info": {
+    "singularName": "moderador",
+    "pluralName": "moderadors",
+    "displayName": "Moderador"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "teste": {
+      "type": "string"
+    }
+  }
+}
