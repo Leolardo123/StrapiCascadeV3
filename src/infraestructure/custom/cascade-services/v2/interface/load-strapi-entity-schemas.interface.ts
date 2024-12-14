@@ -1,4 +1,4 @@
-import { Common } from "@strapi/strapi";
+import { strapiContentType } from "../../../../../../types/generated/custom";
 
 export enum StrapiTypesEnum {
   string = "string",
@@ -40,7 +40,7 @@ interface IPluginOptions {}
 export interface IStrapiEntityAttributes {
   type: StrapiTypesEnum;
   relation: "oneToOne" | "oneToMany" | "manyToOne" | "manyToMany";
-  target: Common.UID.ContentType;
+  target: strapiContentType;
   mappedBy: string;
 }
 

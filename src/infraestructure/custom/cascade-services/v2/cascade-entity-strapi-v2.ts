@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Common } from "@strapi/strapi";
 import { IStrapiRelational } from "../v3/interface/load-strapi-entity-schemas-v3";
 import { formatFieldStrapi } from "../../utils/format-fields-strapi";
 import {
@@ -12,7 +11,7 @@ import {
   IOperationResult,
   LinkTypeEnum,
 } from "./interface/cascade-entity-strapi-v2.interface";
-import { strapiEntity, strapiEntityService, strapiFilters } from "../../../../../types/generated/custom";
+import { strapiContentType, strapiEntity, strapiFilters } from "../../../../../types/generated/custom";
 import { errorParserStrapi } from "../../error/error-parser";
 import { isDevMode } from "../../../../../config/custom";
 
@@ -29,7 +28,7 @@ const secretEntities = ["plugin::users-permissions.user"];
  * @description
  * Gets the populate param for cascading operations
  */
-const getCascadeTree = <T extends Common.UID.ContentType>({
+const getCascadeTree = <T extends strapiContentType>({
   entity,
   previous,
 }: IGetCascadeTreeDTO): string[] => {
@@ -68,7 +67,7 @@ const getCascadeTree = <T extends Common.UID.ContentType>({
   return tree;
 };
 
-const getOperations = <T extends Common.UID.ContentType>({
+const getOperations = <T extends strapiContentType>({
   data,
   entitySchemas,
   entity,
@@ -233,7 +232,7 @@ const getOperations = <T extends Common.UID.ContentType>({
   return operations;
 };
 
-const executeStrapiOperation = async <T extends Common.UID.ContentType>({
+const executeStrapiOperation = async <T extends strapiContentType>({
   data,
   target,
   operation,
@@ -287,7 +286,7 @@ const executeStrapiOperation = async <T extends Common.UID.ContentType>({
  * - Admin and Plugin entities except for plugin::users-permissions.user
  * - Transactions
  */
-const cascadeEntityStrapiV2 = async <T extends Common.UID.ContentType>({
+const cascadeEntityStrapiV2 = async <T extends strapiContentType>({
   data,
   entity,
   operation: opType = CascadeOperatorEnum.CREATE,
@@ -495,7 +494,7 @@ const cascadeEntityStrapiV2 = async <T extends Common.UID.ContentType>({
               `[DELETE]${operation.target}/${operation.result.id}`
             );
             await strapi.entityService.delete(
-              operation.target,
+              operation.target as any,
               operation.result.id
             );
           }

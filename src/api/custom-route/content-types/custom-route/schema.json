@@ -1,0 +1,18 @@
+{
+  "kind": "collectionType",
+  "collectionName": "custom_routes",
+  "info": {
+    "singularName": "custom-route",
+    "pluralName": "custom-routes",
+    "displayName": "CustomRoute"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "test": {
+      "type": "string"
+    }
+  }
+}

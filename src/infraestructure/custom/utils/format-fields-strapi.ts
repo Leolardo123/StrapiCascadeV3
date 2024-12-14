@@ -1,5 +1,28 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import { StrapiTypesEnum } from "./interface/load-strapi-entity-schemas.interface";
+export enum StrapiTypesEnum {
+  string = "string",
+  text = "text",
+  email = "email",
+  password = "password",
+  integer = "integer",
+  float = "float",
+  decimal = "decimal",
+  boolean = "boolean",
+  binary = "binary",
+  uid = "uid",
+  enumeration = "enumeration",
+  json = "json",
+  relation = "relation",
+  component = "component",
+  dynamiczone = "dynamiczone",
+  date = "date",
+  time = "time",
+  datetime = "datetime",
+  timestamp = "timestamp",
+  created_by = "created_by",
+  updated_by = "updated_by",
+}
+
 
 const formatFieldStrapi = (
   field: string = "field",

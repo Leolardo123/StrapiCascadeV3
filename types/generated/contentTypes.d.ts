@@ -611,6 +611,33 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCustomRouteCustomRoute extends Struct.CollectionTypeSchema {
+  collectionName: 'custom_routes';
+  info: {
+    singularName: 'custom-route';
+    pluralName: 'custom-routes';
+    displayName: 'CustomRoute';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    test: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    publishedAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::custom-route.custom-route'
+    >;
+  };
+}
+
 export interface ApiGlobalGlobal extends Struct.SingleTypeSchema {
   collectionName: 'globals';
   info: {
@@ -1045,6 +1072,7 @@ declare module '@strapi/strapi' {
       'api::article.article': ApiArticleArticle;
       'api::author.author': ApiAuthorAuthor;
       'api::category.category': ApiCategoryCategory;
+      'api::custom-route.custom-route': ApiCustomRouteCustomRoute;
       'api::global.global': ApiGlobalGlobal;
       'api::moderador.moderador': ApiModeradorModerador;
       'admin::permission': AdminPermission;

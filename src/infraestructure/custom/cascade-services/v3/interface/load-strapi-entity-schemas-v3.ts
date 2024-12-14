@@ -1,28 +1,5 @@
-import { Common } from "@strapi/strapi";
-
-export enum StrapiTypesEnum {
-  string = "string",
-  text = "text",
-  email = "email",
-  password = "password",
-  integer = "integer",
-  float = "float",
-  decimal = "decimal",
-  boolean = "boolean",
-  binary = "binary",
-  uid = "uid",
-  enumeration = "enumeration",
-  json = "json",
-  relation = "relation",
-  component = "component",
-  dynamiczone = "dynamiczone",
-  date = "date",
-  time = "time",
-  datetime = "datetime",
-  timestamp = "timestamp",
-  created_by = "created_by",
-  updated_by = "updated_by",
-}
+import { strapiContentType } from "../../../../../../types/generated/custom";
+import { StrapiTypesEnum } from "../../../utils/format-fields-strapi";
 
 interface IInfo {
   singularName: string;
@@ -40,7 +17,7 @@ interface IPluginOptions {}
 export interface IStrapiEntityAttributes {
   type: StrapiTypesEnum;
   relation: "oneToOne" | "oneToMany" | "manyToOne" | "manyToMany";
-  target: Common.UID.ContentType;
+  target: strapiContentType;
   mappedBy: string;
 }
 

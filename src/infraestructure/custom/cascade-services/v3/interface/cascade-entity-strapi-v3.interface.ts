@@ -1,5 +1,6 @@
-import { strapiEntity } from "../../../../../../types/generated/custom";
-
+import { Schema } from "@strapi/strapi";
+import { strapiContentType, strapiEntity, strapiFilters } from "../../../../../../types/generated/custom";
+import { Knex } from "knex";
 export interface ICascadeOptions {
   /**
    * @description
@@ -17,9 +18,9 @@ export enum LinkTypeEnum {
 }
 
 
-export interface CascadeStrapiV3Upsert<T> {
-  trx: any,
-  data: strapiEntity<T>,
+export interface CascadeStrapiV3Upsert<T extends strapiContentType> {
+  trx: Knex.Transaction,
+  data: strapiFilters<T>,
   target: T,
   options?: ICascadeOptions,
   // TODO - Implement ZOD or joi

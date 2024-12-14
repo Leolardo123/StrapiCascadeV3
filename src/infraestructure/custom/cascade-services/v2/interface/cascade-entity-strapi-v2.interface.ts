@@ -1,5 +1,4 @@
-import { Common } from "@strapi/strapi";
-import { strapiEntity, strapiEntityService } from "../../../../../../types/generated/custom";
+import { strapiContentType, strapiEntity, strapiEntityService } from "../../../../../../types/generated/custom";
 import { IStrapiEntitySchema } from "./load-strapi-entity-schemas.interface";
 
 export interface ICascadeOptions {
@@ -14,7 +13,7 @@ export interface ICascadeOptions {
 }
 
 export interface ICascadeEntityStrapiV2<
-  T extends Common.UID.ContentType,
+  T extends strapiContentType,
   TParams extends strapiEntityService<T>
 > {
   data: any;
@@ -29,7 +28,7 @@ export enum LinkTypeEnum {
   TO_MANY = "ToMany",
 }
 
-export interface IOperationDTO<T extends Common.UID.ContentType> {
+export interface IOperationDTO<T extends strapiContentType> {
   data: strapiEntity<T>;
   operation: CascadeOperatorEnum;
   entity?: T;
@@ -42,7 +41,7 @@ export interface IOperationDTO<T extends Common.UID.ContentType> {
   link_type?: LinkTypeEnum;
 }
 
-export interface IOperation<T extends Common.UID.ContentType> {
+export interface IOperation<T extends strapiContentType> {
   data: strapiEntity<T>;
   target: T;
   operation: CascadeOperatorEnum;
@@ -51,7 +50,7 @@ export interface IOperation<T extends Common.UID.ContentType> {
   link_type?: LinkTypeEnum;
 }
 
-export interface IOperationResult<T extends Common.UID.ContentType> {
+export interface IOperationResult<T extends strapiContentType> {
   target: T;
   result: strapiEntity<T>;
   operation: CascadeOperatorEnum;
@@ -77,9 +76,9 @@ export class CascadeStrapiV2Error {
   message: string;
 
   operations: {
-    executed: IOperationResult<Common.UID.ContentType>[];
-    failed: IOperationResult<Common.UID.ContentType>[];
-    operations: IOperation<Common.UID.ContentType>[];
+    executed: IOperationResult<strapiContentType>[];
+    failed: IOperationResult<strapiContentType>[];
+    operations: IOperation<strapiContentType>[];
   };
 
   constructor({
@@ -92,9 +91,9 @@ export class CascadeStrapiV2Error {
     type: string;
     message: string;
     operations: {
-      executed: IOperationResult<Common.UID.ContentType>[];
-      failed: IOperationResult<Common.UID.ContentType>[];
-      operations: IOperation<Common.UID.ContentType>[];
+      executed: IOperationResult<strapiContentType>[];
+      failed: IOperationResult<strapiContentType>[];
+      operations: IOperation<strapiContentType>[];
     };
   }) {
     this.label = label;
