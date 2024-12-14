@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IStrapiRelational } from "../v3/interface/load-strapi-entity-schemas-v3";
-import { formatFieldStrapi } from "../../utils/format-fields-strapi";
+
+import { formatFieldStrapi } from "../utils/format-fields-strapi";
 import {
   CascadeOperatorEnum,
   CascadeStrapiV2Error,
@@ -12,8 +12,9 @@ import {
   LinkTypeEnum,
 } from "./interface/cascade-entity-strapi-v2.interface";
 import { strapiContentType, strapiEntity, strapiFilters } from "../../../../../types/generated/custom";
-import { errorParserStrapi } from "../../error/error-parser";
+import { errorParserStrapi } from "../error/error-parser";
 import { isDevMode } from "../../../../../config/custom";
+import { IStrapiRelational } from "./interface/load-strapi-entity-schemas.interface";
 
 const contextError = {
   context: "(Cascade Entity Strapi V2)",

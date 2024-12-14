@@ -1,14 +1,39 @@
 import { secretEntities } from "../v2/load-strapi-entity-schemas";
 import { CascadeStrapiV3Upsert } from "./interface/cascade-entity-strapi-v3.interface";
-import { formatFieldStrapi } from "../../utils/format-fields-strapi";
-import {
-  strapiContentType,
-} from "../../../../../types/generated/custom";
+import { formatFieldStrapi } from "../utils/format-fields-strapi";
+import { strapiContentType, strapiSchema } from "../../../../../types/generated/custom";
 import { v4 } from "uuid";
-import { camelToSnakeCase } from "../../utils/string-case-conversion";
-
+import { camelToSnakeCase, snakeToCamelCase } from "../utils/string-case-conversion";
+import _ from 'lodash'
 const contextError = {
   context: "(Cascade Entity Strapi V3)",
+};
+
+const handleGetLinkTableName = <T extends strapiContentType>(schema: strapiSchema<T>, attribute) => {
+  if (schema?.attributes?.[attribute]?.type != "relation") return;
+
+  const reverseSchema = strapi.getModel(schema.attributes[attribute].target);
+  const mappedBy = schema.attributes[attribute].mappedBy;
+  const mappedName = !mappedBy ? schema.info.pluralName : reverseSchema.info.pluralName; // ReversedBy is aways plural? (!mappedBy = reversedBy)
+  const reversedNameType = !mappedBy ? "ToMany" : "manyTo";
+  const reversedSchema = !mappedBy ? reverseSchema : schema;
+
+  const thisName = [
+    mappedName,
+  ];
+
+  if (schema.attributes[attribute].relation.includes(reversedNameType)) {
+    thisName.push(reversedSchema.info.pluralName);
+  } else {
+    thisName.push(reversedSchema.info.singularName);
+  }
+
+  return{ 
+    linkTable: thisName.join("_")
+    .concat("_lnk"), // Strapi V5
+  // .concat("_link"), // Strapi V4
+    reverse: reverseSchema.info.singularName
+  }
 };
 
 const recursiveKnexTransaction = async <T extends strapiContentType>({
@@ -25,7 +50,9 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
 
   let targetData = {} as any;
   const relationalData = {};
+  const linkData = {} as { table: string; data: any }[];
   Object.keys(data).forEach(async (attribute) => {
+    const linkTableName = handleGetLinkTableName(schema, attribute);
     const type = schema.attributes[attribute]?.type;
     const attrSchema = schema.attributes[attribute];
     const columnName = camelToSnakeCase(attribute); // Needed for postgres
@@ -76,32 +103,64 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
         }
 
         const promise = data[attribute].map(async (item) => {
-          if (typeof item === "number") {
-            // If attribute is ID for linking entities, should just ignore
-            return;
-          } 
+          if (typeof item === "number") return;
 
-          return recursiveKnexTransaction({
+          const linkTableName = handleGetLinkTableName(schema, attribute);
+          const result = await recursiveKnexTransaction({
             trx,
             data: item,
             target: attrSchema.target,
             options,
           });
+
+          if (linkData[attribute]) {
+            linkData[attribute].push({
+              table: linkTableName.linkTable,
+              data: {
+                [`${linkTableName.reverse}_id`]: result.id,
+              }
+            });
+          } else {
+            linkData[attribute] = [
+              {
+                table: linkTableName.linkTable,
+                data: {
+                  [`${linkTableName.reverse}_id`]: result.id,
+                }
+              }
+            ];
+          }
+
+          return result;
         });
 
         relationalData[attribute] = await Promise.all(promise);
       } else {
-        if (typeof data[attribute] === "number") {
-          // If attribute is ID for linking entities, should just ignore
-          return;
-        } 
+        if (Array.isArray(data[attribute])) {
+          throw new Error(
+            `${attribute} in ${target} can't be array ${contextError.context}`
+          );
+        }
 
-        relationalData[attribute] = await recursiveKnexTransaction({
+        if (typeof data[attribute] === "number") return;
+
+        const linkTableName = handleGetLinkTableName(schema, attribute);
+        
+        const result = await recursiveKnexTransaction({
           trx,
           data: data[attribute],
           target: attrSchema.target,
           options,
         });
+
+        linkData[attribute] = [{
+          table: linkTableName.linkTable,
+          data: {
+            [`${linkTableName.reverse}_id`]: result.id,
+          }
+        }]; // Aways will be an array to simplify the code
+
+        relationalData[attribute] = result;
       }
     }
   });
@@ -114,10 +173,21 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
 
   targetData.id = id[0].id;
 
+  if (Object.keys(linkData).length > 0) {
+    Object.keys(linkData).forEach(async (attribute) => {
+      linkData[attribute].forEach(async (item) => {
+        await trx.insert({
+          ...item.data,
+          [`${schema.info.singularName}_id`]: id[0].id
+        }, "id").into(item.table);
+      })
+    })
+  }
+
   return {
-    ...targetData,
+    ..._.mapKeys(targetData, (v, k) => _.camelCase(k)) as any,
     ...relationalData
-  } 
+  };
 };
 
 const StrapiCascadeV3 = {

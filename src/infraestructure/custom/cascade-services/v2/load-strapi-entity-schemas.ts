@@ -4,7 +4,7 @@ import {
   IStrapiEntitySchema,
   IStrapiRelational,
   IStrapiSchemas,
-} from "../v3/interface/load-strapi-entity-schemas-v3";
+} from "./interface/load-strapi-entity-schemas.interface";
 
 const relativePath = path
   .resolve(__dirname, "../../src/api")
