@@ -1,10 +1,11 @@
 import { secretEntities } from "../v2/load-strapi-entity-schemas";
 import { CascadeStrapiV3Upsert } from "./interface/cascade-entity-strapi-v3.interface";
 import { formatFieldStrapi } from "../utils/format-fields-strapi";
-import { strapiContentType, strapiSchema } from "../../../../../types/generated/custom";
+
 import { v4 } from "uuid";
 import { camelToSnakeCase, snakeToCamelCase } from "../utils/string-case-conversion";
 import _ from 'lodash'
+import { strapiContentType, strapiDeepEntity, strapiSchema } from "../../../../types/generated/custom";
 const contextError = {
   context: "(Cascade Entity Strapi V3)",
 };
@@ -28,7 +29,7 @@ const handleGetLinkTableName = <T extends strapiContentType>(schema: strapiSchem
     thisName.push(reversedSchema.info.singularName);
   }
 
-  return{ 
+  return{
     linkTable: thisName.join("_")
     .concat("_lnk"), // Strapi V5
   // .concat("_link"), // Strapi V4
@@ -42,7 +43,7 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
   target,
   options,
 }: CascadeStrapiV3Upsert<T>) => {
-  const schema = strapi.getModel(target);
+  const schema: any = strapi.getModel(target as any);
 
   if (!schema) {
     throw new Error("Schema not found " + contextError);
@@ -54,7 +55,7 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
   Object.keys(data).forEach(async (attribute) => {
     const linkTableName = handleGetLinkTableName(schema, attribute);
     const type = schema.attributes[attribute]?.type;
-    const attrSchema = schema.attributes[attribute];
+    const attrSchema: any = schema.attributes[attribute];
     const columnName = camelToSnakeCase(attribute); // Needed for postgres
 
     if (
@@ -145,7 +146,7 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
         if (typeof data[attribute] === "number") return;
 
         const linkTableName = handleGetLinkTableName(schema, attribute);
-        
+
         const result = await recursiveKnexTransaction({
           trx,
           data: data[attribute],
@@ -195,7 +196,7 @@ const StrapiCascadeV3 = {
     data,
     target,
   }: {
-    data: any;
+    data: strapiDeepEntity<T>;
     target: T;
   }) => {
     const strapiKnex = strapi.db.connection;

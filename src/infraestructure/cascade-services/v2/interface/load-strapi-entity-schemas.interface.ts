@@ -1,4 +1,4 @@
-import { strapiContentType } from "../../../../../../types/generated/custom";
+import { strapiContentType } from "../../../../../types/generated/custom";
 
 export enum StrapiTypesEnum {
   string = "string",

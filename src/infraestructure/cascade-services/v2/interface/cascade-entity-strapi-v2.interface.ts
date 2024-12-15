@@ -1,4 +1,4 @@
-import { strapiContentType, strapiEntity, strapiEntityService } from "../../../../../../types/generated/custom";
+import { strapiContentType, strapiEntity, strapiEntityService } from "../../../../../types/generated/custom";
 import { IStrapiEntitySchema } from "./load-strapi-entity-schemas.interface";
 
 export interface ICascadeOptions {

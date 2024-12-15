@@ -3,7 +3,7 @@
  */
 
 import { factories } from '@strapi/strapi'
-import { StrapiCascadeV3 } from '../../../infraestructure/custom/cascade-services/v3/cascade-entity-strapi-v3';
+import { StrapiCascadeV3 } from '../../../infraestructure/cascade-services/v3/cascade-entity-strapi-v3';
 
 export default factories.createCoreController('api::custom-route.custom-route', {
     async cascadeV3(ctx) {
@@ -13,11 +13,6 @@ export default factories.createCoreController('api::custom-route.custom-route', 
                 name: "test",
                 slug: "test",
                 description: "testcasce",
-                articles: [
-                    {
-                        title: "testcascade",
-                    }
-                ]
             }
         })
         

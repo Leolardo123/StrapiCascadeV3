@@ -11,9 +11,9 @@ import {
   IOperationResult,
   LinkTypeEnum,
 } from "./interface/cascade-entity-strapi-v2.interface";
-import { strapiContentType, strapiEntity, strapiFilters } from "../../../../../types/generated/custom";
+import { strapiContentType, strapiEntity, strapiFilters } from "../../../../types/generated/custom";
 import { errorParserStrapi } from "../error/error-parser";
-import { isDevMode } from "../../../../../config/custom";
+import { isDevMode } from "../../../../config/custom";
 import { IStrapiRelational } from "./interface/load-strapi-entity-schemas.interface";
 
 const contextError = {
