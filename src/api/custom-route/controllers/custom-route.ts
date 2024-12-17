@@ -7,15 +7,19 @@ import { StrapiCascadeV3 } from '../../../infraestructure/cascade-services/v3/ca
 
 export default factories.createCoreController('api::custom-route.custom-route', {
     async cascadeV3(ctx) {
-        const result = await StrapiCascadeV3.cascadeUpsert({
-            target: "api::category.category",
+        return StrapiCascadeV3.cascadeUpsert({
             data: {
-                name: "test",
-                slug: "test",
-                description: "testcasce",
-            }
+                author: {
+                    documentId: "whj8g6cq75z6c7opol07swzq",
+                    email: "BZ2q7@example.com",
+                    avatar: null,
+                    name: "asdasd"
+                },
+                title: 'A new title',
+                description: 'A new description',
+                cover: null
+            },
+            target: 'api::article.article',
         })
-        
-        return result
     }
 });

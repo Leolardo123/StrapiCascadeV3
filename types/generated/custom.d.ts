@@ -20,4 +20,10 @@ type DeepPartial<T> = {
     : T[K];
 };
 
-type strapiDeepEntity<T extends strapiContentType> = DeepPartial<GetValues<T>>;
+type DeepPartialEntity<T> = {
+  [K in keyof T]?: T[K] extends object
+    ? DeepPartial<T[K]> | string | number // Recursively apply to nested objects
+    : T[K];
+};
+
+type strapiDeepEntity<T extends strapiContentType> = DeepPartialEntity<GetValues<T>>;

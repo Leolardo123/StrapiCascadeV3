@@ -1,14 +1,68 @@
 import { secretEntities } from "../v2/load-strapi-entity-schemas";
 import { CascadeStrapiV3Upsert } from "./interface/cascade-entity-strapi-v3.interface";
 import { formatFieldStrapi } from "../utils/format-fields-strapi";
-
-import { v4 } from "uuid";
-import { camelToSnakeCase, snakeToCamelCase } from "../utils/string-case-conversion";
+import { strapiContentType, strapiDeepEntity, strapiEntity, strapiSchema } from "../../../../types/generated/custom";
 import _ from 'lodash'
-import { strapiContentType, strapiDeepEntity, strapiSchema } from "../../../../types/generated/custom";
+import utils from "@strapi/utils";
+const { ApplicationError } = utils.errors;
+
 const contextError = {
   context: "(Cascade Entity Strapi V3)",
 };
+
+const strapiCall = {
+  'create': <T extends strapiContentType>(target: T, data: strapiEntity<T>) => {
+    const strapiAny = strapi as any;
+    if (process.env.STRAPI_VER === "4") {
+      // V4
+      return strapi.entityService.create(target as any, { data });
+    } else {
+      // V5
+      return strapiAny.documents("api::article.article").create({
+        data,
+        status: 'published',
+      });
+    }
+  },
+  'update': <T extends strapiContentType>(target: T, id: number | string, data: strapiEntity<T>) => {
+    const strapiAny = strapi as any; // Because V4 does not have strapi.documents
+    if (process.env.STRAPI_VER === "4") {
+      // V4
+      return strapi.entityService.update(target as any, id, { data });
+    } else {
+      // V5
+      return strapiAny.documents(target).update({
+        documentId: id,
+        data,
+        status: 'published',
+      });
+    }
+  },
+}
+
+const getId = (field: any) => {
+  const strapiAny = strapi as any;
+  if (typeof field !== "object") {
+    if (strapiAny?.documents) {
+      return { documentId: field };
+    } else {
+      return { id: field };
+    }
+  }
+
+
+}
+
+const getIdFromEntity = (field: any) => {
+  const strapiAny = strapi as any;
+  if (typeof field === "object") {
+    if (strapiAny?.documents) {
+      return field.documentId;
+    } else {
+      return field.id;
+    }
+  }
+}
 
 const handleGetLinkTableName = <T extends strapiContentType>(schema: strapiSchema<T>, attribute) => {
   if (schema?.attributes?.[attribute]?.type != "relation") return;
@@ -31,11 +85,12 @@ const handleGetLinkTableName = <T extends strapiContentType>(schema: strapiSchem
 
   return{
     linkTable: thisName.join("_")
-    .concat("_lnk"), // Strapi V5
-  // .concat("_link"), // Strapi V4
+    // .concat("_lnk"), // Strapi V5
+    .concat("_links"), // Strapi V4
     reverse: reverseSchema.info.singularName
   }
 };
+
 
 const recursiveKnexTransaction = async <T extends strapiContentType>({
   trx,
@@ -51,16 +106,14 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
 
   let targetData = {} as any;
   const relationalData = {};
-  const linkData = {} as { table: string; data: any }[];
   Object.keys(data).forEach(async (attribute) => {
-    const linkTableName = handleGetLinkTableName(schema, attribute);
     const type = schema.attributes[attribute]?.type;
     const attrSchema: any = schema.attributes[attribute];
-    const columnName = camelToSnakeCase(attribute); // Needed for postgres
+    let dataAttribute = data[attribute];
 
     if (
-      data[attribute] === undefined ||
-      (options?.ignore_null && data[attribute] === null) ||
+      dataAttribute === undefined ||
+      (options?.ignore_null && dataAttribute === null) ||
       // Ignore attributes that are not found in the schema
       (options?.ignore_not_found &&
         attribute !== "id" && // id is ommited in the schema, so it will always be ignored
@@ -70,8 +123,8 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
       return;
     }
 
-    if (typeof data[attribute] === "string" && options?.normalize_strings) {
-      data[attribute] = data[attribute]
+    if (typeof dataAttribute === "string" && options?.normalize_strings) {
+      dataAttribute = dataAttribute
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
     }
@@ -84,7 +137,7 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
         context: "getOperations",
       });
 
-      targetData[columnName] = parsedValue;
+      targetData[attribute] = parsedValue;
 
       return;
     }
@@ -95,18 +148,21 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
       );
     }
 
-    if (type === "relation" && data[attribute]) {
+    if (type === "relation" && dataAttribute) {
       if (/ToMany/g.test(attrSchema.relation)) {
-        if (!Array.isArray(data[attribute])) {
+        if (!Array.isArray(dataAttribute)) {
           throw new Error(
             `${attribute} in ${target} must be array ${contextError.context}`
           );
         }
 
-        const promise = data[attribute].map(async (item) => {
-          if (typeof item === "number") return;
+        const promise = dataAttribute.map(async (item) => {
+          if (typeof dataAttribute != "object") {
+            targetData[attribute] = dataAttribute;
+          } else if (item.documentId || item.id) {
+            targetData[attribute] = getId(item.documentId || item.id);
+          }
 
-          const linkTableName = handleGetLinkTableName(schema, attribute);
           const result = await recursiveKnexTransaction({
             trx,
             data: item,
@@ -114,79 +170,58 @@ const recursiveKnexTransaction = async <T extends strapiContentType>({
             options,
           });
 
-          if (linkData[attribute]) {
-            linkData[attribute].push({
-              table: linkTableName.linkTable,
-              data: {
-                [`${linkTableName.reverse}_id`]: result.id,
-              }
-            });
-          } else {
-            linkData[attribute] = [
-              {
-                table: linkTableName.linkTable,
-                data: {
-                  [`${linkTableName.reverse}_id`]: result.id,
-                }
-              }
-            ];
-          }
-
           return result;
         });
 
         relationalData[attribute] = await Promise.all(promise);
       } else {
-        if (Array.isArray(data[attribute])) {
+        if (Array.isArray(dataAttribute)) {
           throw new Error(
             `${attribute} in ${target} can't be array ${contextError.context}`
           );
         }
 
-        if (typeof data[attribute] === "number") return;
+        if (typeof dataAttribute != "object") {
+          targetData[attribute] = dataAttribute;
+        } else if (
+          dataAttribute.documentId ||
+          dataAttribute.id
+        ) {
+          targetData[attribute] = getId(dataAttribute.documentId || dataAttribute.id);
+        }
 
-        const linkTableName = handleGetLinkTableName(schema, attribute);
-
+        console.log('dataAttribute', dataAttribute);
         const result = await recursiveKnexTransaction({
           trx,
-          data: data[attribute],
+          data: dataAttribute,
           target: attrSchema.target,
           options,
         });
-
-        linkData[attribute] = [{
-          table: linkTableName.linkTable,
-          data: {
-            [`${linkTableName.reverse}_id`]: result.id,
-          }
-        }]; // Aways will be an array to simplify the code
+        console.log('result', result);
 
         relationalData[attribute] = result;
       }
     }
   });
 
-  if (!targetData.document_id) {
-    targetData.document_id = v4();
+  let response;
+  const realId = getIdFromEntity(targetData);
+  if (!realId) {
+    response = await strapiCall.create(
+      target,
+      targetData
+    );
+  } else {
+    response = await strapiCall.update(
+      target,
+      realId,
+      targetData
+    );
   }
 
-  const id = await trx.insert(targetData, "id").into(schema.collectionName);
-
-  targetData.id = id[0].id;
-
-  if (Object.keys(linkData).length > 0) {
-    Object.keys(linkData).forEach(async (attribute) => {
-      linkData[attribute].forEach(async (item) => {
-        await trx.insert({
-          ...item.data,
-          [`${schema.info.singularName}_id`]: id[0].id
-        }, "id").into(item.table);
-      })
-    })
-  }
 
   return {
-    ..._.mapKeys(targetData, (v, k) => _.camelCase(k)) as any,
+    ...response,
     ...relationalData
   };
 };
@@ -201,13 +236,20 @@ const StrapiCascadeV3 = {
   }) => {
     const strapiKnex = strapi.db.connection;
 
-    return await strapiKnex.transaction(async (trx) => {
-      return recursiveKnexTransaction({
-        trx,
-        data,
-        target,
+    try {
+      return await strapiKnex.transaction(async (trx) => {
+        return recursiveKnexTransaction({
+          trx,
+          data,
+          target,
+        });
       });
-    });
+    } catch (err) {
+      throw new ApplicationError(
+        err?.message + contextError?.context ||
+        "Error executing cascade operation" + contextError?.context
+      );
+    }
   },
 
   cascadeDelete: <T extends string>({
@@ -221,6 +263,8 @@ const StrapiCascadeV3 = {
   }) => {
     throw new Error("Method not implemented.");
   },
+
+  handleGetLinkTableName
 };
 
 export { StrapiCascadeV3 };
